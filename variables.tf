@@ -1,7 +1,8 @@
 variable "config" {
   type = object({
     vpc_id               = string
-    subnet_ids           = list(string)
+    private_subnet_ids   = list(string)
+    public_subnet_ids    = list(string)
     cluster_version      = optional(string)
     worker_node_count    = number
     worker_instance_type = string

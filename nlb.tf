@@ -4,7 +4,7 @@ resource "aws_lb" "nlb" {
   ip_address_type    = "ipv4"
   internal           = false
 
-  subnets = local.config.subnet_ids
+  subnets = local.config.public_subnet_ids
 
   enable_cross_zone_load_balancing = true
 }

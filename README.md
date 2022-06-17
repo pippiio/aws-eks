@@ -10,7 +10,7 @@ module "eks" {
 
   config = {
     vpc_id               = "vpc-1234556qwer"
-    subnet_ids           = ["subnet-qwer1", "subnet-qwer2", "subnet-qwer3"]
+    private_subnet_ids   = ["subnet-qwer1", "subnet-qwer2", "subnet-qwer3"]
     worker_node_count    = 2
     worker_instance_type = "t3.small"
     worker_volume_size   = 20
@@ -31,7 +31,8 @@ module "eks" {
 |Name                |Type        |Default     |Required|Description|
 |--------------------|------------|------------|--------|-----------|
 |vpc_id              |string      |nil         |yes     |Id of VPC to deploy to|
-|subnet_ids          |list(string)|nil         |yes     |Ids of subnets to deploy to|
+|private_subnet_ids  |list(string)|nil         |yes     |Ids of private subnets to deploy to|
+|public_subnet_ids   |list(string)|nil         |yes     |Ids of public subnets to deploy to|
 |cluster_version     |string      |1.22        |no      |Version of EKS cluster|
 |worker_node_count   |number      |nil         |yes     |Count of worker nodes to deploy|
 |worker_instance_type|string      |nil         |yes     |Instance type of worker nodes|

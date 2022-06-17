@@ -5,7 +5,7 @@ resource "aws_eks_cluster" "this" {
   version  = local.config.cluster_version
 
   vpc_config {
-    subnet_ids              = local.config.subnet_ids
+    subnet_ids              = local.config.private_subnet_ids
     endpoint_private_access = true
     endpoint_public_access  = true
     public_access_cidrs     = local.config.api_allowed_ips
@@ -37,7 +37,7 @@ resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${local.name_prefix}nodes"
   node_role_arn   = aws_iam_role.worker.arn
-  subnet_ids      = local.config.subnet_ids
+  subnet_ids      = local.config.private_subnet_ids
 
   scaling_config {
     desired_size = local.config.worker_node_count
