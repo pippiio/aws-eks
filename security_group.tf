@@ -24,3 +24,23 @@ resource "aws_security_group_rule" "master-ingress-https-sg" {
   from_port         = 443
   to_port           = 443
 }
+
+resource "aws_security_group_rule" "nlb_ports" {
+  for_each = local.nlb_ports
+
+  type              = "ingress"
+  from_port         = each.value.target
+  to_port           = each.value.target
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+}
+
+resource "aws_security_group_rule" "healtz_ports" {
+  type              = "ingress"
+  from_port         = 10254
+  to_port           = 10254
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+}
