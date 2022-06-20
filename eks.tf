@@ -34,8 +34,18 @@ resource "aws_eks_cluster" "this" {
 }
 
 resource "aws_eks_node_group" "this" {
+  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
+  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
+  depends_on = [
+    aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
+    helm_release.vpc_cni,
+  ]
+
   cluster_name    = aws_eks_cluster.this.name
-  node_group_name = "${local.name_prefix}nodes"
+  # node_group_name = "${local.name_prefix}nodes"
+  node_group_name = "${local.name_prefix}nodes-${random_pet.node_group.id}"
   node_role_arn   = aws_iam_role.worker.arn
   subnet_ids      = local.config.private_subnet_ids
 
@@ -59,16 +69,11 @@ resource "aws_eks_node_group" "this" {
   })
   version = aws_eks_cluster.this.version
 
-  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
-  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
-  depends_on = [
-    aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
-    aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
-    aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
-  ]
-
   lifecycle {
     ignore_changes        = [scaling_config[0].desired_size]
     create_before_destroy = true
   }
+}
+
+resource "random_pet" "node_group" {
 }
