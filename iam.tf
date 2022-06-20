@@ -53,10 +53,27 @@ data "aws_iam_policy_document" "worker" {
   }
 }
 
+data "aws_iam_policy_document" "worker_ecr" {
+  statement {
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetAuthorizationToken",
+    ]
+
+    principals {
+      type        = "Resource"
+      identifiers = ["*"]
+    }
+  }
+}
+
 resource "aws_iam_role" "worker" {
   name = "${local.name_prefix}worker"
 
   assume_role_policy = data.aws_iam_policy_document.worker.json
+  inline_policy      = data.aws_iam_policy_document.worker_ecr.json
 }
 
 data "aws_iam_policy" "AmazonEKSWorkerNodePolicy" {
