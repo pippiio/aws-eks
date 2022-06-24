@@ -9,5 +9,6 @@ variable "config" {
     worker_volume_size   = number
     api_allowed_ips      = optional(list(string))
     addons               = optional(list(string))
+    efs_enabled          = optional(bool)
   })
 }

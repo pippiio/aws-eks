@@ -61,11 +61,7 @@ data "aws_iam_policy_document" "worker_ecr" {
       "ecr:GetDownloadUrlForLayer",
       "ecr:GetAuthorizationToken",
     ]
-
-    principals {
-      type        = "Resource"
-      identifiers = ["*"]
-    }
+    resources = ["*"]
   }
 }
 
@@ -73,7 +69,11 @@ resource "aws_iam_role" "worker" {
   name = "${local.name_prefix}worker"
 
   assume_role_policy = data.aws_iam_policy_document.worker.json
-  inline_policy      = data.aws_iam_policy_document.worker_ecr.json
+
+  inline_policy {
+    name   = "worker-policy"
+    policy = data.aws_iam_policy_document.worker_ecr.json
+  }
 }
 
 data "aws_iam_policy" "AmazonEKSWorkerNodePolicy" {
@@ -99,4 +99,73 @@ resource "aws_iam_role_policy_attachment" "AmazonEKS_CNI_Policy" {
 resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = data.aws_iam_policy.AmazonEC2ContainerRegistryReadOnly.arn
   role       = aws_iam_role.worker.name
+}
+
+### AWS EFS CSI IAM ###
+data "aws_iam_policy_document" "csi" {
+  statement {
+    actions = [
+      "elasticfilesystem:DescribeAccessPoints",
+      "elasticfilesystem:DescribeFileSystems",
+      "elasticfilesystem:DescribeMountTargets",
+      "ec2:DescribeAvailabilityZones",
+    ]
+    resources = ["*"]
+  }
+  statement {
+    actions = [
+      "elasticfilesystem:CreateAccessPoint",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringLike"
+      variable = "aws:RequestTag/efs.csi.aws.com/cluster"
+
+      values = [
+        "true",
+      ]
+    }
+  }
+  statement {
+    actions = [
+      "elasticfilesystem:DeleteAccessPoint",
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringLike"
+      variable = "aws:ResourceTag/efs.csi.aws.com/cluster"
+
+      values = [
+        "true",
+      ]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "csi_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_iam_openid_connect_provider.this.url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:kube-system:efs-csi-controller-sa"]
+    }
+
+    principals {
+      identifiers = [aws_iam_openid_connect_provider.this.arn]
+      type        = "Federated"
+    }
+  }
+}
+
+resource "aws_iam_role" "csi" {
+  name = "${local.name_prefix}efs-csi"
+
+  assume_role_policy = data.aws_iam_policy_document.csi_assume.json
+
+  inline_policy {
+    name   = "csi-policy"
+    policy = data.aws_iam_policy_document.csi.json
+  }
 }
