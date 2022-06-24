@@ -29,6 +29,11 @@ output "cluster_addons" {
 }
 
 output "worker_iam_arn" {
-  description = "Map of attribute maps for all EKS cluster addons enabled"
+  description = "IAM Arn for workers"
+  value       = aws_iam_role.worker.arn
+}
+
+output "efs_csi_iam_arn" {
+  description = "IAM Arn for efs csi"
   value       = aws_iam_role.worker.arn
 }
