@@ -44,3 +44,27 @@ resource "aws_security_group_rule" "healtz_ports" {
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
 }
+
+### EFS Security Group ###
+resource "aws_security_group" "efs" {
+  count = local.config.efs_enabled ? 1 : 0
+
+  name        = "${local.name_prefix}efs-eks"
+  description = "SG for the ${local.name_prefix}efs eks"
+  vpc_id      = local.config.vpc_id
+
+  ingress {
+    from_port   = 2049
+    to_port     = 2049
+    protocol    = "tcp"
+    cidr_blocks = [data.aws_vpc.current.cidr_block_associations[0].cidr_block]
+  }
+
+  tags = merge(local.default_tags, {
+    "Name" = "${local.name_prefix}efs-eks"
+  })
+}
+
+data "aws_vpc" "current" {
+  id = local.config.vpc_id
+}

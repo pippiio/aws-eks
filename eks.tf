@@ -34,8 +34,17 @@ resource "aws_eks_cluster" "this" {
 }
 
 resource "aws_eks_node_group" "this" {
-  cluster_name    = aws_eks_cluster.this.name
-  node_group_name = "${local.name_prefix}nodes"
+  # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
+  # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
+  depends_on = [
+    aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
+    aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
+    aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
+  ]
+
+  cluster_name = aws_eks_cluster.this.name
+  # node_group_name = "${local.name_prefix}nodes"
+  node_group_name = "${local.name_prefix}nodes-${random_pet.node_group.id}"
   node_role_arn   = aws_iam_role.worker.arn
   subnet_ids      = local.config.private_subnet_ids
 
@@ -72,3 +81,19 @@ resource "aws_eks_node_group" "this" {
     create_before_destroy = true
   }
 }
+<<<<<<< HEAD
+=======
+
+resource "random_pet" "node_group" {
+}
+
+data "tls_certificate" "this" {
+  url = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "this" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.this.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
+>>>>>>> e02639b (Added EFS CSI driver feature)
