@@ -37,3 +37,7 @@ output "efs_csi_iam_arn" {
   description = "IAM Arn for efs csi"
   value       = aws_iam_role.worker.arn
 }
+
+output "eks_security_group_id" {
+  value = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+}
