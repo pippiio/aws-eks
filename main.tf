@@ -8,7 +8,8 @@ locals {
   fixed_addons = [
     "vpc-cni",
     "coredns",
-    "kube-proxy"
+    "kube-proxy",
+    "vpc-cni",
   ]
   addons = concat(local.config.addons, local.fixed_addons)
 
