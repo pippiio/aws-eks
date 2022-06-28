@@ -1,7 +1,11 @@
 resource "helm_release" "csi" {
+  count = local.config.efs_enabled ? 1 : 0
+
   depends_on = [
-    aws_eks_cluster.this
+    aws_eks_cluster.this,
+    aws_eks_node_group.this
   ]
+
   name       = "aws-efs-csi-driver"
   chart      = "aws-efs-csi-driver"
   repository = "https://kubernetes-sigs.github.io/aws-efs-csi-driver/"
