@@ -1,3 +1,12 @@
+data "aws_ssm_parameters_by_path" "k8s_secrets" {
+  path      = "/kubernetes"
+  recursive = true
+}
+
+data "aws_iam_session_context" "current" {
+  arn = data.aws_caller_identity.current.arn
+}
+
 locals {
   config = defaults(var.config, {
     cluster_version = "1.22"
@@ -9,7 +18,6 @@ locals {
     "vpc-cni",
     "coredns",
     "kube-proxy",
-    "vpc-cni",
   ]
   addons = concat(local.config.addons, local.fixed_addons)
 
@@ -22,5 +30,13 @@ locals {
       listen = 443,
       target = 31443,
     },
+  }
+
+  k8s_secrets = {
+    for name in data.aws_ssm_parameters_by_path.k8s_secrets.names : name => {
+      secret_name      = split("/", name)[3]
+      secret_namespace = split("/", name)[2]
+      secret_value     = data.aws_ssm_parameters_by_path.k8s_secrets.values[index(data.aws_ssm_parameters_by_path.k8s_secrets.names, name)]
+    }
   }
 }
