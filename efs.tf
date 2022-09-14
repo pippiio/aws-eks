@@ -12,6 +12,6 @@ resource "aws_efs_mount_target" "this" {
   count = local.config.efs_enabled ? length(local.config.private_subnet_ids) : 0
 
   security_groups = [aws_security_group.efs[0].id]
-  file_system_id = aws_efs_file_system.this[0].id
-  subnet_id      = local.config.private_subnet_ids[count.index]
+  file_system_id  = aws_efs_file_system.this[0].id
+  subnet_id       = local.config.private_subnet_ids[count.index]
 }

@@ -11,5 +11,7 @@ variable "config" {
     addons                 = optional(list(string))
     efs_enabled            = optional(bool)
     administrator_role_arn = optional(string)
+    ssh_enabled            = optional(bool)
+    ssh_security_groups    = optional(list(string))
   })
 }

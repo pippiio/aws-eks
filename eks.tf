@@ -62,7 +62,15 @@ resource "aws_eks_node_group" "this" {
 
   # labels - (Optional) Key-value map of Kubernetes labels. 
   # launch_template - (Optional) Configuration block with Launch Template settings. Detailed below.
-  # remote_access - (Optional) Configuration block with remote access settings. Detailed below.
+  dynamic "remote_access" {
+    for_each = local.config.ssh_enabled ? {1:1} : {}
+
+    content {
+      ec2_ssh_key               = one(aws_key_pair.worker).key_name
+      source_security_group_ids = local.config.ssh_security_groups
+    }
+  }
+
   tags = merge(local.default_tags, {
     "Name" = "${local.name_prefix}nodegroup"
   })
@@ -85,4 +93,18 @@ resource "aws_iam_openid_connect_provider" "this" {
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = [data.tls_certificate.this.certificates[0].sha1_fingerprint]
   url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
+
+resource "tls_private_key" "worker" {
+  count = local.config.ssh_enabled ? 1 : 0
+
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "worker" {
+  count = local.config.ssh_enabled ? 1 : 0
+
+  key_name   = "WorkerNodeSSH"
+  public_key = one(tls_private_key.worker).public_key_openssh
 }
