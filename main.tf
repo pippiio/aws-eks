@@ -8,13 +8,7 @@ data "aws_iam_session_context" "current" {
 }
 
 locals {
-  config = defaults(var.config, {
-    cluster_version     = "1.22"
-    api_allowed_ips     = "0.0.0.0/0"
-    efs_enabled         = false
-    ssh_enabled         = false
-    ssh_security_groups = ""
-  })
+  config = var.config
 
   fixed_addons = [
     "vpc-cni",
