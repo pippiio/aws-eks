@@ -42,6 +42,14 @@ output "eks_security_group_id" {
   value = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
 }
 
+output "aws_iam_openid_connect_provider_arn" {
+  value = aws_iam_openid_connect_provider.this.arn
+}
+
+output "aws_iam_openid_connect_provider_url" {
+  value = aws_iam_openid_connect_provider.this.url
+}
+
 output "private_key" {
   value     = length(tls_private_key.worker) > 0 ? one(tls_private_key.worker).private_key_pem : ""
   sensitive = true
