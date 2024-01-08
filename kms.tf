@@ -1,4 +1,3 @@
-# EKS KMS
 data "aws_iam_policy_document" "kms" {
   statement {
     resources = ["*"]
@@ -13,7 +12,7 @@ data "aws_iam_policy_document" "kms" {
   statement {
     effect    = "Allow"
     resources = ["*"]
-    actions   = ["*"]
+    actions   = ["kms:*"]
 
     principals {
       type        = "Service"
@@ -33,7 +32,7 @@ resource "aws_kms_key" "cluster" {
 }
 
 resource "aws_kms_alias" "cluster" {
-  name          = "alias/eks-cluster-kms-cmk"
+  name          = "alias/${local.name_prefix}eks-cluster-kms-cmk"
   target_key_id = aws_kms_key.cluster.key_id
 }
 
@@ -66,11 +65,11 @@ resource "aws_kms_key" "k8s" {
   policy              = data.aws_iam_policy_document.k8s.json
 
   tags = merge(local.default_tags, {
-    "Name" = "${local.name_prefix}k8s-kms"
+    "Name" = "${local.name_prefix}k8s-secret-kms"
   })
 }
 
 resource "aws_kms_alias" "k8s" {
-  name          = "alias/k8s-secret-kms"
+  name          = "alias/${local.name_prefix}k8s-secret-kms"
   target_key_id = aws_kms_key.k8s.key_id
 }
