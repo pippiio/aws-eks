@@ -8,7 +8,7 @@ variable "config" {
     worker_instance_type   = string
     worker_volume_size     = number
     api_allowed_ips        = optional(set(string), ["0.0.0.0/0"])
-    addons                 = optional(set(string))
+    addons                 = optional(set(string), [])
     efs_enabled            = optional(bool, false)
     administrator_role_arn = optional(string)
     ssh_enabled            = optional(bool, false)
