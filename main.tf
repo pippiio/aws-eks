@@ -2,27 +2,18 @@ data "aws_ssm_parameters_by_path" "k8s_secrets" {
   path      = "/kubernetes"
   recursive = true
 }
-
 data "aws_iam_session_context" "current" {
   arn = data.aws_caller_identity.current.arn
 }
 
 locals {
-  config = defaults(var.config, {
-    cluster_version     = "1.22"
-    api_allowed_ips     = "0.0.0.0/0"
-    efs_enabled         = false
-    ssh_enabled         = false
-    ssh_security_groups = ""
-  })
-
+  config = var.config
   fixed_addons = [
     "vpc-cni",
     "coredns",
     "kube-proxy",
   ]
   addons = concat(local.config.addons, local.fixed_addons)
-
   nlb_ports = {
     http = {
       listen = 80,
@@ -33,7 +24,7 @@ locals {
       target = 31443,
     },
   }
-
+  
   k8s_secrets = {
     for name in data.aws_ssm_parameters_by_path.k8s_secrets.names : name => {
       secret_name      = split("/", name)[3]
