@@ -62,7 +62,7 @@ resource "aws_eks_node_group" "this" {
   # labels - (Optional) Key-value map of Kubernetes labels. 
   # launch_template - (Optional) Configuration block with Launch Template settings. Detailed below.
   dynamic "remote_access" {
-    for_each = local.config.ssh_enabled ? {1:1} : {}
+    for_each = local.config.ssh_enabled ? { 1 : 1 } : {}
 
     content {
       ec2_ssh_key               = one(aws_key_pair.worker).key_name

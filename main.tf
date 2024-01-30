@@ -24,7 +24,7 @@ locals {
       target = 31443,
     },
   }
-  
+
   k8s_secrets = {
     for name in data.aws_ssm_parameters_by_path.k8s_secrets.names : name => {
       secret_name      = split("/", name)[3]
