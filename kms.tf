@@ -1,5 +1,6 @@
 data "aws_iam_policy_document" "kms" {
   statement {
+    sid       = "Allow IAM policy control of key"
     resources = ["*"]
     actions   = ["kms:*"]
 
@@ -10,13 +11,49 @@ data "aws_iam_policy_document" "kms" {
   }
 
   statement {
+    sid       = "Allow ${var.name_prefix}EKS Cluster usage"
     effect    = "Allow"
     resources = ["*"]
-    actions   = ["kms:*"]
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+
+      "kms:*", #TODO
+    ]
+
+    # principals {
+    #   type        = "AWS"
+    #   identifiers = [aws_iam_role.cluster.arn]
+    # }
+    principals { #TODO
+      type        = "Service"
+      identifiers = ["eks.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid       = "Allow CloudWatch Logs"
+    resources = ["*"]
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
 
     principals {
       type        = "Service"
-      identifiers = ["eks.amazonaws.com"]
+      identifiers = ["logs.${local.region_name}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "ArnEquals"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/aws/eks/${local.name_prefix}cluster/cluster"]
     }
   }
 }

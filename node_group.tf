@@ -10,7 +10,9 @@ data "aws_iam_policy" "AmazonEC2ContainerRegistryReadOnly" {
   name = "AmazonEC2ContainerRegistryReadOnly"
 }
 
-data "aws_iam_policy_document" "worker" {
+# AmazonEBSCSIDriverPolicy
+
+data "aws_iam_policy_document" "node_group" {
   statement {
     actions = ["sts:AssumeRole"]
 
@@ -21,38 +23,52 @@ data "aws_iam_policy_document" "worker" {
   }
 }
 
-resource "aws_iam_role" "worker" {
+resource "aws_security_group" "node_group" {
+  name        = "${local.name_prefix}eks-node-group"
+  description = "SG for the ${local.name_prefix}EKS node_group"
+  vpc_id      = local.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.default_tags, {
+    "Name" = "${var.name_prefix}eks-node-group"
+  })
+}
+
+# resource "aws_security_group_rule" "node_group" {
+#   type              = "ingress"
+#   description       = "Allow EKS cluster API communication"
+#   security_group_id = aws_security_group.node_group.id
+#   self              = true
+#   protocol          = -1
+#   from_port         = 0
+#   to_port           = 0
+# }
+
+resource "aws_iam_role" "node_group" {
   for_each = var.node_group
 
-  name               = "${local.name_prefix}eks-wng-${each.key}"
-  assume_role_policy = data.aws_iam_policy_document.worker.json
+  name               = "${local.name_prefix}eks-node-group-${each.key}"
+  assume_role_policy = data.aws_iam_policy_document.node_group.json
   managed_policy_arns = [
     data.aws_iam_policy.AmazonEKSWorkerNodePolicy.arn,
     data.aws_iam_policy.AmazonEKS_CNI_Policy.arn,
     data.aws_iam_policy.AmazonEC2ContainerRegistryReadOnly.arn,
   ]
-
-  # inline_policy {
-  #   name   = "worker-policy"
-  #   policy = data.aws_iam_policy_document.worker_ecr.json
-  # }
 }
 
 resource "aws_eks_node_group" "this" {
   for_each = var.node_group
 
-  # # Ensure that IAM Role permissions are created before and deleted after EKS Node Group handling.
-  # # Otherwise, EKS will not be able to properly delete EC2 Instances and Elastic Network Interfaces.
-  # depends_on = [
-  #   aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
-  #   aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
-  #   aws_iam_role_policy_attachment.AmazonEC2ContainerRegistryReadOnly,
-  # ]
-
   cluster_name         = aws_eks_cluster.this.name
   version              = coalesce(each.value.version, aws_eks_cluster.this.version)
   node_group_name      = "${local.name_prefix}${each.key}_${random_pet.node_group.id}"
-  node_role_arn        = aws_iam_role.worker[each.key].arn
+  node_role_arn        = aws_iam_role.node_group[each.key].arn
   subnet_ids           = coalesce(each.value.subnet_ids, var.cluster.subnet_ids)
   instance_types       = each.value.instance_types
   disk_size            = each.value.volumne_size
@@ -67,23 +83,29 @@ resource "aws_eks_node_group" "this" {
     max_size     = each.value.max_size
   }
 
-  # dynamic "remote_access" {
-  #   for_each = each.value.ec2_ssh_key != null ? [1] : []
+  dynamic "remote_access" {
+    for_each = each.value.ec2_ssh_key != null ? [1] : []
 
-  #   content {
-  #     ec2_ssh_key               = each.value.ec2_ssh_key
-  #     source_security_group_ids = local.config.ssh_security_groups
-  #   }
-  # }
+    content {
+      ec2_ssh_key               = each.value.ec2_ssh_key
+      source_security_group_ids = var.cluster.trusted_security_groups
+    }
+  }
 
   tags = merge(local.default_tags, {
     "Name" = "${local.name_prefix}eks-wng-${each.key}"
   })
 
   lifecycle {
-    ignore_changes        = [scaling_config[0].desired_size]
     create_before_destroy = true
+    ignore_changes = [
+      scaling_config[0].desired_size,
+      update_config,
+    ]
   }
 }
 
-resource "random_pet" "node_group" {}
+resource "random_pet" "node_group" {
+  length    = 2
+  separator = "-"
+}
