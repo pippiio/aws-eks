@@ -2,15 +2,9 @@ data "aws_iam_policy" "AmazonEKSWorkerNodePolicy" {
   name = "AmazonEKSWorkerNodePolicy"
 }
 
-data "aws_iam_policy" "AmazonEKS_CNI_Policy" {
-  name = "AmazonEKS_CNI_Policy"
-}
-
 data "aws_iam_policy" "AmazonEC2ContainerRegistryReadOnly" {
   name = "AmazonEC2ContainerRegistryReadOnly"
 }
-
-# AmazonEBSCSIDriverPolicy
 
 data "aws_iam_policy_document" "node_group" {
   statement {
@@ -51,13 +45,10 @@ resource "aws_security_group" "node_group" {
 # }
 
 resource "aws_iam_role" "node_group" {
-  for_each = var.node_group
-
-  name               = "${local.name_prefix}eks-node-group-${each.key}"
+  name               = "${local.name_prefix}eks-node-group"
   assume_role_policy = data.aws_iam_policy_document.node_group.json
   managed_policy_arns = [
     data.aws_iam_policy.AmazonEKSWorkerNodePolicy.arn,
-    data.aws_iam_policy.AmazonEKS_CNI_Policy.arn,
     data.aws_iam_policy.AmazonEC2ContainerRegistryReadOnly.arn,
   ]
 }
@@ -68,7 +59,7 @@ resource "aws_eks_node_group" "this" {
   cluster_name         = aws_eks_cluster.this.name
   version              = coalesce(each.value.version, aws_eks_cluster.this.version)
   node_group_name      = "${local.name_prefix}${each.key}_${random_pet.node_group.id}"
-  node_role_arn        = aws_iam_role.node_group[each.key].arn
+  node_role_arn        = aws_iam_role.node_group.arn
   subnet_ids           = coalesce(each.value.subnet_ids, var.cluster.subnet_ids)
   instance_types       = each.value.instance_types
   disk_size            = each.value.volumne_size
@@ -97,7 +88,7 @@ resource "aws_eks_node_group" "this" {
   })
 
   lifecycle {
-    create_before_destroy = true
+    # create_before_destroy = true
     ignore_changes = [
       scaling_config[0].desired_size,
       update_config,
@@ -106,6 +97,8 @@ resource "aws_eks_node_group" "this" {
 }
 
 resource "random_pet" "node_group" {
+  # keepers = {}
+
   length    = 2
   separator = "-"
 }

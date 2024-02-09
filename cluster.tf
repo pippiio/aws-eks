@@ -133,9 +133,9 @@ resource "aws_cloudwatch_log_group" "cluster" {
   tags              = local.default_tags
 }
 
-# data "tls_certificate" "cluster" {
-#   url = aws_eks_cluster.this.identity[0].oidc[0].issuer
-# }
+data "tls_certificate" "cluster" {
+  url = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}
 
 # resource "aws_iam_openid_connect_provider" "this" {
 #   client_id_list  = ["sts.amazonaws.com"]
