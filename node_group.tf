@@ -34,23 +34,36 @@ resource "aws_security_group" "node_group" {
   })
 }
 
-# resource "aws_security_group_rule" "node_group" {
-#   type              = "ingress"
-#   description       = "Allow EKS cluster API communication"
-#   security_group_id = aws_security_group.node_group.id
-#   self              = true
-#   protocol          = -1
-#   from_port         = 0
-#   to_port           = 0
-# }
+resource "aws_security_group_rule" "node_group" {
+  type              = "ingress"
+  description       = "Allow EKS cluster API communication"
+  security_group_id = aws_security_group.node_group.id
+  self              = true
+  protocol          = -1
+  from_port         = 0
+  to_port           = 0
+}
 
 resource "aws_iam_role" "node_group" {
   name               = "${local.name_prefix}eks-node-group"
   assume_role_policy = data.aws_iam_policy_document.node_group.json
   managed_policy_arns = [
     data.aws_iam_policy.AmazonEKSWorkerNodePolicy.arn,
+    data.aws_iam_policy.AmazonEKS_CNI_Policy.arn,
     data.aws_iam_policy.AmazonEC2ContainerRegistryReadOnly.arn,
   ]
+
+  # TODO
+  # inline_policy {
+  #   name = "worker-policy"
+  #   policy = jsonencode({
+  #     Version = "2012-10-17"
+  #     Statement = [{
+  #       Effect   = "Allow"
+  #       Action   = "*"
+  #       Resource = "*"
+  #   }] })
+  # }
 }
 
 resource "aws_eks_node_group" "this" {
@@ -58,15 +71,15 @@ resource "aws_eks_node_group" "this" {
 
   cluster_name         = aws_eks_cluster.this.name
   version              = coalesce(each.value.version, aws_eks_cluster.this.version)
-  node_group_name      = "${local.name_prefix}${each.key}_${random_pet.node_group.id}"
+  node_group_name      = "${local.name_prefix}${each.key}"
   node_role_arn        = aws_iam_role.node_group.arn
   subnet_ids           = coalesce(each.value.subnet_ids, var.cluster.subnet_ids)
   instance_types       = each.value.instance_types
+  ami_type             = each.value.ami_type
   disk_size            = each.value.volumne_size
   capacity_type        = each.value.spot_instance ? "SPOT" : "ON_DEMAND"
-  force_update_version = false # - (Optional) Force version update if existing pods are unable to be drained due to a pod disruption budget issue.
   labels               = each.value.labels
-  # ami_type       = "AL2_x86_64" # AL2_x86_64|AL2_x86_64_GPU|AL2_ARM_64
+  force_update_version = false
 
   scaling_config {
     desired_size = each.value.desired_size
@@ -78,8 +91,8 @@ resource "aws_eks_node_group" "this" {
     for_each = each.value.ec2_ssh_key != null ? [1] : []
 
     content {
-      ec2_ssh_key               = each.value.ec2_ssh_key
-      source_security_group_ids = var.cluster.trusted_security_groups
+      ec2_ssh_key = each.value.ec2_ssh_key
+      # source_security_group_ids = setunion(var.cluster.trusted_security_groups, [aws_security_group.node_group.id])
     }
   }
 
@@ -96,9 +109,4 @@ resource "aws_eks_node_group" "this" {
   }
 }
 
-resource "random_pet" "node_group" {
-  # keepers = {}
-
-  length    = 2
-  separator = "-"
-}
+resource "random_pet" "node_group" {}

@@ -57,6 +57,13 @@ resource "aws_security_group" "cluster" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    security_groups = [aws_security_group.node_group.id]
+  }
+
   tags = merge(local.default_tags, {
     "Name" = "${var.name_prefix}eks-cluster-sg"
   })
@@ -137,31 +144,8 @@ data "tls_certificate" "cluster" {
   url = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
 
-# resource "aws_iam_openid_connect_provider" "this" {
-#   client_id_list  = ["sts.amazonaws.com"]
-#   thumbprint_list = [data.tls_certificate.cluster.certificates[0].sha1_fingerprint]
-#   url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
-# }
-
-# data "aws_iam_policy_document" "cluster" {
-#   statement {
-#     actions = ["sts:AssumeRoleWithWebIdentity"]
-#     effect  = "Allow"
-
-#     condition {
-#       test     = "StringEquals"
-#       variable = "${replace(aws_iam_openid_connect_provider.example.url, "https://", "")}:sub"
-#       values   = ["system:serviceaccount:kube-system:aws-node"]
-#     }
-
-#     principals {
-#       identifiers = [aws_iam_openid_connect_provider.this.arn]
-#       type        = "Federated"
-#     }
-#   }
-# }
-
-# resource "aws_iam_role" "example" {
-#   assume_role_policy = data.aws_iam_policy_document.example_assume_role_policy.json
-#   name               = "example"
-# }
+resource "aws_iam_openid_connect_provider" "this" {
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.cluster.certificates[0].sha1_fingerprint]
+  url             = aws_eks_cluster.this.identity[0].oidc[0].issuer
+}

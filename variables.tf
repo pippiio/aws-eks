@@ -15,6 +15,7 @@ variable "cluster" {
 
 variable "addons" {
   type = object({
+    eks-pod-identity-agent          = optional(bool, true)
     coredns                         = optional(bool, true)
     kube-proxy                      = optional(bool, true)
     vpc-cni                         = optional(bool, true)  # AmazonEKSVPCCNIRole
@@ -32,6 +33,7 @@ variable "node_group" {
     version        = optional(string)
     subnet_ids     = optional(set(string))
     instance_types = optional(set(string), ["t3.small"])
+    ami_type       = optional(string)
     volumne_size   = optional(number)
     spot_instance  = optional(bool, false)
     min_size       = optional(number, 1)

@@ -20,17 +20,11 @@ data "aws_iam_policy_document" "kms" {
       "kms:ReEncrypt*",
       "kms:GenerateDataKey*",
       "kms:DescribeKey",
-
-      "kms:*", #TODO
     ]
 
-    # principals {
-    #   type        = "AWS"
-    #   identifiers = [aws_iam_role.cluster.arn]
-    # }
-    principals { #TODO
-      type        = "Service"
-      identifiers = ["eks.amazonaws.com"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.account_id}:role/${local.name_prefix}eks-cluster-role"]
     }
   }
 
