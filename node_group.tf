@@ -91,8 +91,8 @@ resource "aws_eks_node_group" "this" {
     for_each = each.value.ec2_ssh_key != null ? [1] : []
 
     content {
-      ec2_ssh_key = each.value.ec2_ssh_key
-      # source_security_group_ids = setunion(var.cluster.trusted_security_groups, [aws_security_group.node_group.id])
+      ec2_ssh_key               = each.value.ec2_ssh_key
+      source_security_group_ids = setunion(each.value.security_group_ids, [aws_security_group.node_group.id])
     }
   }
 

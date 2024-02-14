@@ -30,17 +30,18 @@ variable "addons" {
 
 variable "node_group" {
   type = map(object({
-    version        = optional(string)
-    subnet_ids     = optional(set(string))
-    instance_types = optional(set(string), ["t3.small"])
-    ami_type       = optional(string)
-    volumne_size   = optional(number)
-    spot_instance  = optional(bool, false)
-    min_size       = optional(number, 1)
-    max_size       = optional(number, 5)
-    desired_size   = optional(number)
-    labels         = optional(map(string), {})
-    ec2_ssh_key    = optional(string)
+    version            = optional(string)
+    subnet_ids         = optional(set(string))
+    instance_types     = optional(set(string), ["t3.small"])
+    ami_type           = optional(string)
+    volumne_size       = optional(number)
+    spot_instance      = optional(bool, false)
+    min_size           = optional(number, 1)
+    max_size           = optional(number, 5)
+    desired_size       = optional(number)
+    labels             = optional(map(string), {})
+    ec2_ssh_key        = optional(string)
+    security_group_ids = optional(set(string), [])
   }))
   default = {
     default_wng = {}
