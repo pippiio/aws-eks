@@ -1,5 +1,6 @@
 data "aws_iam_policy_document" "kms" {
   statement {
+    sid       = "Allow IAM policy control of key"
     resources = ["*"]
     actions   = ["kms:*"]
 
@@ -10,13 +11,43 @@ data "aws_iam_policy_document" "kms" {
   }
 
   statement {
+    sid       = "Allow ${var.name_prefix}EKS Cluster usage"
     effect    = "Allow"
     resources = ["*"]
-    actions   = ["kms:*"]
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${local.account_id}:role/${local.name_prefix}eks-cluster-role"]
+    }
+  }
+
+  statement {
+    sid       = "Allow CloudWatch Logs"
+    resources = ["*"]
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
 
     principals {
       type        = "Service"
-      identifiers = ["eks.amazonaws.com"]
+      identifiers = ["logs.${local.region_name}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "ArnEquals"
+      variable = "kms:EncryptionContext:aws:logs:arn"
+      values   = ["arn:aws:logs:${local.region_name}:${local.account_id}:log-group:/aws/eks/${local.name_prefix}cluster/cluster"]
     }
   }
 }
@@ -32,44 +63,6 @@ resource "aws_kms_key" "cluster" {
 }
 
 resource "aws_kms_alias" "cluster" {
-  name          = "alias/${local.name_prefix}eks-cluster-kms-cmk"
+  name          = "alias/${var.name_prefix}eks-cluster-kms-cmk"
   target_key_id = aws_kms_key.cluster.key_id
-}
-
-# Kubernetes Secret KMS Key
-data "aws_iam_policy_document" "k8s" {
-  statement {
-    resources   = ["*"]
-    not_actions = ["kms:Decrypt"]
-
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.id}:root"]
-    }
-  }
-
-  statement {
-    resources = ["*"]
-    actions   = ["kms:Decrypt"]
-
-    principals {
-      type        = "AWS"
-      identifiers = compact([data.aws_iam_session_context.current.issuer_arn, local.config.administrator_role_arn])
-    }
-  }
-}
-
-resource "aws_kms_key" "k8s" {
-  description         = "KMS CMK used To create kubernetes secrets"
-  enable_key_rotation = true
-  policy              = data.aws_iam_policy_document.k8s.json
-
-  tags = merge(local.default_tags, {
-    "Name" = "${local.name_prefix}k8s-secret-kms"
-  })
-}
-
-resource "aws_kms_alias" "k8s" {
-  name          = "alias/${local.name_prefix}k8s-secret-kms"
-  target_key_id = aws_kms_key.k8s.key_id
 }

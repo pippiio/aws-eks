@@ -6,6 +6,12 @@ output "cluster_arn" {
 output "cluster_certificate_authority_data" {
   description = "Base64 encoded certificate data required to communicate with the cluster"
   value       = aws_eks_cluster.this.certificate_authority[0].data
+  sensitive   = true
+}
+
+output "token" {
+  value     = data.aws_eks_cluster_auth.eks.token
+  sensitive = true
 }
 
 output "cluster_endpoint" {
@@ -30,27 +36,23 @@ output "cluster_addons" {
 
 output "worker_iam_arn" {
   description = "IAM Arn for workers"
-  value       = aws_iam_role.worker.arn
-}
-
-output "efs_csi_iam_arn" {
-  description = "IAM Arn for efs csi"
-  value       = aws_iam_role.worker.arn
+  value       = aws_iam_role.node_group.arn
 }
 
 output "eks_security_group_id" {
   value = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
 }
 
-output "aws_iam_openid_connect_provider_arn" {
-  value = aws_iam_openid_connect_provider.this.arn
-}
 
-output "aws_iam_openid_connect_provider_url" {
-  value = aws_iam_openid_connect_provider.this.url
-}
+# output "aws_iam_openid_connect_provider_arn" {
+#   value = aws_iam_openid_connect_provider.this.arn
+# }
 
-output "private_key" {
-  value     = length(tls_private_key.worker) > 0 ? one(tls_private_key.worker).private_key_pem : ""
-  sensitive = true
-}
+# output "aws_iam_openid_connect_provider_url" {
+#   value = aws_iam_openid_connect_provider.this.url
+# }
+
+# output "private_key" {
+#   value     = length(tls_private_key.worker) > 0 ? one(tls_private_key.worker).private_key_pem : ""
+#   sensitive = true
+# }
