@@ -24,7 +24,13 @@ data "aws_iam_policy_document" "kms" {
 
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${local.account_id}:role/${local.name_prefix}eks-cluster-role"]
+      identifiers = ["*"]
+    }
+
+    condition {
+      test = "ArnLike"
+      variable = "aws:PrincipalArn"
+      values = ["arn:aws:iam::${local.account_id}:role/${local.name_prefix}eks-cluster-role"]
     }
   }
 
